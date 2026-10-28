@@ -1,0 +1,526 @@
+<!doctype html>
+<html lang="da">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0f3d2e">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Forbrug">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<title>Forbrug</title>
+<style>
+  :root {
+    --bg:#f1f1ef; --card:#fff; --ink:#151816; --muted:#6c716e; --line:#e4e4e0;
+    --brand:#0f3d2e; --brand-ink:#fff; --soft:#a9d3e6;
+    --warn-bg:#fbe4e2; --ok-bg:#e1f0e7; --red:#b42318;
+    --c-mig:#6d4fd1; --c-boern:#1f73c9; --c-os:#c8336b;
+    --r:20px; --shadow:0 1px 2px rgba(16,24,20,.04),0 4px 14px rgba(16,24,20,.05);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg:#111413; --card:#1b1f1d; --ink:#eef1ef; --muted:#9aa29e; --line:#2b312e;
+      --brand:#3fae84; --brand-ink:#0b1a14; --soft:#4f7f95; --warn-bg:#3a2321; --ok-bg:#1d3329; --red:#ff8a80;
+      --c-mig:#a58cff; --c-boern:#6cb0ff; --c-os:#ff7aa8; --shadow:none; }
+  }
+  * { box-sizing:border-box; }
+  html,body { margin:0; background:var(--bg); color:var(--ink); }
+  body { font-family:var(--font-sans,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif); font-size:14px; line-height:20px; padding:20px 16px 96px; max-width:720px; margin:0 auto; }
+  button,input { font:inherit; color:inherit; }
+  button { cursor:pointer; }
+  :focus-visible { outline:2px solid var(--brand); outline-offset:2px; }
+  .i { width:20px; height:20px; fill:currentColor; flex:none; }
+  .muted { color:var(--muted); }
+  .num { font-variant-numeric:tabular-nums; letter-spacing:-.01em; }
+
+  .top { display:flex; justify-content:space-between; align-items:center; gap:12px; }
+  .top h1 { font-size:20px; font-weight:700; margin:0; letter-spacing:-.01em; }
+  .actions { display:flex; gap:8px; align-items:center; }
+  .round { width:40px; height:40px; border-radius:50%; border:1px solid var(--line); background:var(--card); display:grid; place-items:center; padding:0; }
+  .round.brand { background:var(--brand); color:var(--brand-ink); border-color:transparent; }
+  .round:hover { filter:brightness(.96); }
+  .monthnav { display:flex; align-items:center; gap:4px; margin:18px 0 4px; }
+  .monthnav strong { text-transform:capitalize; font-weight:600; min-width:120px; text-align:center; }
+  .ghost { border:none; background:transparent; border-radius:50%; width:36px; height:36px; display:grid; place-items:center; padding:0; color:var(--muted); }
+  .ghost:hover { background:var(--line); color:var(--ink); }
+
+  .headline { font-size:28px; line-height:32px; font-weight:700; margin:10px 0 16px; letter-spacing:-.02em; }
+  .headline span { display:block; color:var(--muted); }
+
+  .card { background:var(--card); border-radius:var(--r); padding:18px; box-shadow:var(--shadow); border:1px solid color-mix(in srgb,var(--line) 60%,transparent); }
+  .label { font-size:13px; font-weight:600; }
+  .big { font-size:32px; line-height:38px; font-weight:800; letter-spacing:-.02em; margin-top:2px; }
+  .mid { font-size:20px; line-height:26px; font-weight:800; margin-top:6px; }
+  .grid2 { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:12px; }
+  .stat { position:relative; }
+  .stat .arrow { position:absolute; top:16px; right:16px; color:var(--muted); }
+  .sec { display:flex; justify-content:space-between; align-items:baseline; margin:24px 2px 0; }
+  .sec h2 { font-size:17px; margin:0; font-weight:700; }
+  .link { border:none; background:none; padding:4px 0; font-weight:600; text-decoration:none; }
+  .link:hover { text-decoration:underline; }
+
+  /* chart */
+  .chart { overflow:hidden; display:grid; grid-template-columns:repeat(6,1fr); align-items:end; gap:6px; height:170px; margin-top:18px; padding-top:34px; position:relative;
+}
+  .col { display:flex; flex-direction:column; align-items:center; height:100%; justify-content:flex-end; border:none; background:none; padding:0; position:relative; border-radius:12px; }
+  .bars { display:flex; align-items:flex-end; gap:4px; height:calc(100% - 22px); }
+  .bars i { display:block; width:14px; border-radius:7px; background:var(--brand); min-height:4px; transition:height .35s ease; }
+  .bars i.b { background:var(--soft); }
+  .col:not(.sel) .bars i:first-child { opacity:.55; }
+  .col .m { font-size:11px; color:var(--muted); height:22px; line-height:22px; text-transform:capitalize; }
+  .col.sel .m { color:var(--ink); font-weight:700; }
+  .tip { position:absolute; left:50%; transform:translateX(-50%); background:var(--brand); color:var(--brand-ink); font-size:11px; font-weight:700; padding:3px 8px; border-radius:8px; white-space:nowrap; }
+  .legend { display:flex; gap:14px; font-size:12px; margin-top:10px; }
+  .legend span::before { content:""; display:inline-block; width:10px; height:10px; border-radius:3px; background:var(--brand); margin-right:6px; vertical-align:-1px; }
+  .legend span.b::before { background:var(--soft); }
+  @media (prefers-reduced-motion: reduce) { .bars i, .pbar i { transition:none; } }
+
+  .tile { width:44px; height:44px; border-radius:14px; display:grid; place-items:center; background:var(--brand); color:var(--brand-ink); }
+  .tile.who { background:color-mix(in srgb,var(--who) 14%,transparent); color:var(--who); }
+  .budget-card { display:flex; flex-direction:column; justify-content:space-between; gap:22px; }
+  .status { background:var(--ok-bg); border-color:transparent; }
+  .status.over { background:var(--warn-bg); }
+  .status .say { font-size:17px; line-height:23px; font-weight:700; margin:2px 0 12px; }
+  .pill { display:inline-flex; align-items:center; gap:4px; font-size:12px; font-weight:600; }
+  .up { color:var(--red); } .down { color:var(--brand); }
+
+  .who-list { display:grid; gap:10px; margin-top:12px; }
+  .who-row { display:grid; grid-template-columns:auto 1fr auto; gap:12px; align-items:center; }
+  .pbar { height:8px; border-radius:4px; background:var(--line); overflow:hidden; margin-top:8px; }
+  .pbar i { display:block; height:100%; background:var(--who); border-radius:4px; transition:width .35s ease; }
+  .pbar.over i { background:var(--red); }
+  .small { font-size:12px; line-height:16px; }
+  .over-txt { color:var(--red); font-weight:600; }
+
+  .budget-edit { display:flex; gap:8px; margin-top:10px; align-items:center; flex-wrap:wrap; }
+  input { border:1px solid var(--line); background:var(--bg); border-radius:12px; padding:8px 12px; min-height:44px; width:100%; }
+  .btn { border:1px solid var(--line); background:var(--card); border-radius:999px; padding:8px 16px; min-height:40px; font-weight:600; }
+  .btn.brand { background:var(--brand); color:var(--brand-ink); border-color:transparent; }
+  .btn:hover { filter:brightness(.96); }
+  .mini { list-style:none; margin:10px 0 0; padding:10px 0 0; border-top:1px dashed var(--line); display:grid; gap:4px; font-size:12px; }
+  .mini li { display:flex; justify-content:space-between; }
+
+  .tx { list-style:none; margin:12px 0 0; padding:6px 14px; }
+  .tx li { display:grid; grid-template-columns:auto 1fr auto auto; gap:12px; align-items:center; padding:10px 0; border-bottom:1px solid var(--line); }
+  .tx li:last-child { border-bottom:none; }
+  .tx .what { font-weight:600; }
+  .tx .amt { font-weight:700; text-align:right; }
+  .day { font-size:12px; font-weight:700; color:var(--muted); margin:16px 4px 0; }
+  .day::first-letter { text-transform:uppercase; }
+  .cardrow { display:grid; grid-template-columns:auto 1fr auto; gap:12px; align-items:center; padding:8px 0; }
+  .empty { text-align:center; padding:28px 18px; }
+  .empty .tile { margin:0 auto 10px; }
+
+  .tabbar { position:fixed; left:0; right:0; bottom:0; background:var(--card); border-top:1px solid var(--line); display:flex; justify-content:space-around; padding:8px 8px 12px; z-index:5; }
+  .tabbar button { border:none; background:none; display:flex; flex-direction:column; align-items:center; gap:2px; font-size:12px; color:var(--muted); padding:6px 16px; border-radius:12px; min-width:72px; }
+  .tabbar button[aria-selected="true"] { color:var(--brand); font-weight:700; }
+  .tabbar button[aria-selected="true"]::after { content:""; width:18px; height:3px; border-radius:2px; background:var(--brand); margin-top:2px; }
+  .tabbar .i { width:22px; height:22px; }
+
+  dialog { border:none; border-radius:24px; padding:0; width:min(520px,calc(100vw - 24px)); background:var(--card); color:var(--ink); box-shadow:0 20px 60px rgba(0,0,0,.25); }
+  dialog::backdrop { background:rgba(10,20,15,.45); }
+  dialog form { display:grid; gap:14px; padding:20px; }
+  .dlg-head { display:flex; justify-content:space-between; align-items:center; }
+  .dlg-head h2 { margin:0; font-size:20px; }
+  .amount-in { font-size:28px; font-weight:800; min-height:60px; text-align:left; }
+  label.f { display:grid; gap:6px; font-size:12px; font-weight:600; color:var(--muted); }
+  .row2 { display:grid; grid-template-columns:2fr 1fr; gap:10px; }
+  .chips { display:flex; gap:8px; flex-wrap:wrap; }
+  .chip { border:1px solid var(--line); background:var(--bg); border-radius:999px; padding:8px 14px; min-height:40px; display:inline-flex; align-items:center; gap:6px; font-weight:600; }
+  .chip[aria-pressed="true"] { background:var(--brand); color:var(--brand-ink); border-color:transparent; }
+  .chip[data-who][aria-pressed="true"] { background:var(--who); color:#fff; }
+  .chip .i { width:16px; height:16px; }
+  .err { color:var(--red); min-height:20px; font-weight:600; }
+  .newcard { display:flex; gap:8px; }
+  .newcard input { flex:1; }
+  .seg { display:grid; grid-template-columns:1fr 1fr; background:var(--bg); border-radius:999px; padding:4px; gap:4px; }
+  .seg button { border:none; background:none; border-radius:999px; min-height:40px; font-weight:700; color:var(--muted); display:inline-flex; align-items:center; justify-content:center; gap:6px; }
+  .seg button[aria-pressed="true"] { background:var(--card); color:var(--ink); box-shadow:var(--shadow); }
+  .seg .i { width:16px; height:16px; }
+  .plus { color:var(--brand); }
+  .tile.sale { background:var(--ok-bg); color:var(--brand); }
+  .bal { display:flex; justify-content:space-between; align-items:center; gap:12px; margin-top:14px; padding:12px 14px; border-radius:14px; background:var(--bg); flex-wrap:wrap; }
+  .bal .mid { margin-top:0; }
+  .bal .budget-edit { margin-top:0; }
+  .info { display:flex; align-items:center; gap:10px; margin-top:10px; padding:10px 14px; border-radius:14px; background:color-mix(in srgb,var(--who) 10%,transparent); }
+  .info .i { color:var(--who); }
+  .note { font-size:12px; color:var(--muted); margin-top:-6px; }
+  [hidden] { display:none !important; }
+  /* phone app: respect notch and home indicator */
+  body { padding-top:calc(20px + env(safe-area-inset-top)); padding-bottom:calc(96px + env(safe-area-inset-bottom)); }
+  .tabbar { padding-bottom:calc(12px + env(safe-area-inset-bottom)); }
+  .round, .tabbar button { min-height:48px; min-width:48px; }
+  .round { width:48px; height:48px; }
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-home" viewBox="0 0 40 40"><path d="M20 5 4 18.5l2.6 3L9 19.5V35h9v-9h4v9h9V19.5l2.4 2 2.6-3z"/></symbol>
+  <symbol id="i-wallet" viewBox="0 0 40 40"><path d="M9 8h20v4H9a1 1 0 0 0 0 2h23a3 3 0 0 1 3 3v15a3 3 0 0 1-3 3H8a3 3 0 0 1-3-3V11a3 3 0 0 1 3-3zm22 14h-5a2 2 0 0 0 0 4h5z"/></symbol>
+  <symbol id="i-list" viewBox="0 0 40 40"><path d="M9 4h22a2 2 0 0 1 2 2v28a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2zm4 9v3h14v-3zm0 6v3h14v-3zm0 6v3h9v-3z"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 40 40"><path d="M18 8h4v10h10v4H22v10h-4V22H8v-4h10z"/></symbol>
+  <symbol id="i-prev" viewBox="0 0 40 40"><path d="M25 8 13 20l12 12 2.8-2.8L18.6 20l9.2-9.2z"/></symbol>
+  <symbol id="i-next" viewBox="0 0 40 40"><path d="M15 8 12.2 10.8l9.2 9.2-9.2 9.2L15 32l12-12z"/></symbol>
+  <symbol id="i-up" viewBox="0 0 40 40"><path d="M14 10h16v16h-4v-9.2L12.8 30 10 27.2 23.2 14H14z"/></symbol>
+  <symbol id="i-down" viewBox="0 0 40 40"><path d="M14 30h16V14h-4v9.2L12.8 10 10 12.8 23.2 26H14z"/></symbol>
+  <symbol id="i-trash" viewBox="0 0 40 40"><path d="M15 6h10l1 2h7v4H7V8h7zM10 14h20l-1.5 20h-17zm6 4v12h3V18zm5 0v12h3V18z"/></symbol>
+  <symbol id="i-close" viewBox="0 0 40 40"><path d="m11.4 8.6 8.6 8.6 8.6-8.6 2.8 2.8-8.6 8.6 8.6 8.6-2.8 2.8-8.6-8.6-8.6 8.6-2.8-2.8 8.6-8.6-8.6-8.6z"/></symbol>
+  <symbol id="i-card" viewBox="0 0 40 40"><path d="M7 9h26a3 3 0 0 1 3 3v16a3 3 0 0 1-3 3H7a3 3 0 0 1-3-3V12a3 3 0 0 1 3-3zm-1 5v4h28v-4zm3 9v3h8v-3z"/></symbol>
+  <symbol id="i-mig" viewBox="0 0 40 40"><path d="M20 5a7 7 0 1 1 0 14 7 7 0 0 1 0-14zm0 17c7.7 0 13 3.8 13 9v4H7v-4c0-5.2 5.3-9 13-9z"/></symbol>
+  <symbol id="i-boern" viewBox="0 0 40 40"><path d="M13 8a5 5 0 1 1 0 10 5 5 0 0 1 0-10zm15 4a4 4 0 1 1 0 8 4 4 0 0 1 0-8zM13 20c5.5 0 9 2.8 9 6.5V33H4v-6.5C4 22.8 7.5 20 13 20zm15 2.5c4.4 0 8 2.2 8 5.3V33H25v-6.5c0-1.5-.5-2.9-1.4-4 1.3-.3 2.8-.5 4.4-.5z"/></symbol>
+  <symbol id="i-os" viewBox="0 0 40 40"><path d="M13 7a5.5 5.5 0 1 1 0 11 5.5 5.5 0 0 1 0-11zm14 0a5.5 5.5 0 1 1 0 11 5.5 5.5 0 0 1 0-11zM13 20c4 0 7 1.7 7 1.7s3-1.7 7-1.7c5 0 9 2.8 9 6.6V33H4v-6.4C4 22.8 8 20 13 20z"/></symbol>
+  <symbol id="i-pen" viewBox="0 0 40 40"><path d="m26.6 6 7.4 7.4-18.8 18.8L6 34l1.8-9.2zm0 5.6L11.4 26.8l-1.3 3.1 3.1-1.3L28.4 13.4z"/></symbol>
+  <symbol id="i-tag" viewBox="0 0 40 40"><path d="M21 4h13a2 2 0 0 1 2 2v13L19 36 4 21zm7 5a3 3 0 1 0 0 6 3 3 0 0 0 0-6z"/></symbol>
+  <symbol id="i-bank" viewBox="0 0 40 40"><path d="m20 3 16 8v4H4v-4zM7 18h4v11H7zm8 0h4v11h-4zm8 0h4v11h-4zm8 0h2v11h-2zM4 32h32v4H4z"/></symbol>
+  <symbol id="i-cloud" viewBox="0 0 40 40"><path d="M21 9a10 10 0 0 1 9.6 7.3A8 8 0 0 1 29 32H11a8 8 0 0 1-1.6-15.8A10 10 0 0 1 21 9zm-3.4 19.4 9.6-9.6-2.8-2.8-6.8 6.8-3-3-2.8 2.8z"/></symbol>
+  <symbol id="i-cloud-off" viewBox="0 0 40 40"><path d="M21 9a10 10 0 0 1 9.6 7.3A8 8 0 0 1 29 32H11a8 8 0 0 1-1.6-15.8A10 10 0 0 1 21 9zm-1.5 6v9h3v-9zm0 11v3h3v-3z"/></symbol>
+  <symbol id="i-sync" viewBox="0 0 40 40"><path d="M20 6a14 14 0 0 1 12.1 7H27v4h12V5h-4v5.3A18 18 0 0 0 2.4 17l4 .6A14 14 0 0 1 20 6zm13.6 16.4A14 14 0 0 1 7.9 27H13v-4H1v12h4v-5.3A18 18 0 0 0 37.6 23z"/></symbol>
+  <symbol id="i-cal" viewBox="0 0 40 40"><path d="M12 4h4v4h8V4h4v4h5a2 2 0 0 1 2 2v24a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V10a2 2 0 0 1 2-2h5zm-3 12v16h22V16zm4 4h5v5h-5z"/></symbol>
+</svg>
+
+<header class="top">
+  <h1>Forbrug</h1>
+  <div class="actions">
+    <button class="round brand" id="openAdd" aria-label="Tilføj køb eller salg" title="Tilføj køb eller salg"><svg class="i"><use href="#i-plus"/></svg></button>
+  </div>
+</header>
+
+<div class="monthnav">
+  <button class="ghost" id="prev" aria-label="Forrige måned"><svg class="i"><use href="#i-prev"/></svg></button>
+  <strong id="month" aria-live="polite"></strong>
+  <button class="ghost" id="next" aria-label="Næste måned"><svg class="i"><use href="#i-next"/></svg></button>
+</div>
+
+<main>
+  <section id="tab-home" role="tabpanel" aria-labelledby="t-home">
+    <h2 class="headline" id="headline"></h2>
+    <div class="card">
+      <div class="label">Brugt i alt</div>
+      <div class="big num" id="total"></div>
+      <div class="chart" id="chart" aria-label="Forbrug de seneste 6 måneder"></div>
+      <div class="legend muted" id="legend"></div>
+    </div>
+    <div class="grid2">
+      <div class="card stat" id="statPrev"></div>
+      <div class="card stat" id="statCount"></div>
+    </div>
+    <div class="sec"><h2>Dit overblik</h2><button class="link" data-goto="koeb">Se alle</button></div>
+    <div class="grid2" id="overview"></div>
+    <div class="who-list" id="whoList"></div>
+  </section>
+
+  <section id="tab-budget" role="tabpanel" aria-labelledby="t-budget" hidden>
+    <h2 class="headline">Budgetter<span>pr. måned</span></h2>
+    <div class="who-list" id="budgetList"></div>
+  </section>
+
+  <section id="tab-koeb" role="tabpanel" aria-labelledby="t-koeb" hidden>
+    <h2 class="headline">Køb<span id="koebSub"></span></h2>
+    <div id="list"></div>
+    <div class="sec"><h2>Pr. kort</h2></div>
+    <div class="card" style="margin-top:12px" id="cards"></div>
+  </section>
+</main>
+
+<nav class="tabbar" role="tablist" aria-label="Sektioner">
+  <button role="tab" id="t-home" data-tab="home" aria-controls="tab-home" aria-selected="true"><svg class="i"><use href="#i-home"/></svg>Oversigt</button>
+  <button role="tab" id="t-budget" data-tab="budget" aria-controls="tab-budget" aria-selected="false"><svg class="i"><use href="#i-wallet"/></svg>Budgetter</button>
+  <button role="tab" id="t-koeb" data-tab="koeb" aria-controls="tab-koeb" aria-selected="false"><svg class="i"><use href="#i-list"/></svg>Køb</button>
+</nav>
+
+<dialog id="addDlg" aria-labelledby="dlgTitle">
+  <form id="form" autocomplete="off">
+    <div class="dlg-head"><h2 id="dlgTitle">Nyt køb</h2><button type="button" class="ghost" id="closeAdd" aria-label="Luk"><svg class="i"><use href="#i-close"/></svg></button></div>
+    <div class="seg" role="group" aria-label="Type"><button type="button" data-mode="buy" aria-pressed="true"><svg class="i"><use href="#i-card"/></svg>Køb</button><button type="button" data-mode="sell" aria-pressed="false"><svg class="i"><use href="#i-tag"/></svg>Salg</button></div>
+    <label class="f">Beløb (kr.)<input class="amount-in num" id="amount" inputmode="decimal" placeholder="0,00" required></label>
+    <div class="row2">
+      <label class="f"><span id="whatLbl">Hvad købte du?</span><input id="what" placeholder="Fx vinterstøvler"></label>
+      <label class="f">Dato<input id="date" type="date"></label>
+    </div>
+    <p class="note" id="saleNote" hidden>Salget tæller som plus på "Mig selv" og lægges til din saldo.</p>
+    <div id="buyFields" style="display:grid;gap:14px">
+    <div class="f label muted" style="font-size:12px">Til hvem?</div>
+    <div class="chips" id="whoChips" role="group" aria-label="Til hvem"></div>
+    <div class="f label muted" style="font-size:12px">Hvilket kort?</div>
+    <div class="chips" id="cardChips" role="group" aria-label="Kort"></div>
+    <div class="newcard" id="newCardRow" hidden><input id="newCard" placeholder="Fx MobilePay" aria-label="Navn på nyt kort"><button type="button" class="btn" id="saveCard">Gem kort</button></div>
+    </div>
+    <div class="err" id="err" role="alert"></div>
+    <button class="btn brand" type="submit" id="submitBtn" style="min-height:48px">Tilføj køb</button>
+  </form>
+</dialog>
+
+<script src="core.js"></script>
+<script src="pwa.js"></script>
+<script>
+const WHO = [["mig","Mig selv","--c-mig"],["boern","Børnene","--c-boern"],["os","Mig & min mand","--c-os"]];
+const WHOMAP = Object.fromEntries(WHO.map(([k,l,c]) => [k,{l,c}]));
+const ico = (n, cls="i") => `<svg class="${cls}" aria-hidden="true"><use href="#i-${n}"/></svg>`;
+const kr = (n) => n.toLocaleString("da-DK",{minimumFractionDigits:0,maximumFractionDigits:2}) + " kr.";
+const krShort = (n) => n >= 10000 ? (n/1000).toLocaleString("da-DK",{maximumFractionDigits:1}) + "k" : Math.round(n).toLocaleString("da-DK");
+const esc = (s) => String(s).replace(/[&<>"]/g,(c)=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const localToday = () => new Date().toLocaleDateString("sv-SE");
+let state = { purchases:[], cards:[], budgets:{}, sales:[], balances:{}, childBenefit:{ next:"2027-01-20", everyMonths:3 } };
+let mode = "buy";
+let month = localToday().slice(0,7);
+let tab = localStorage.getItem("fb-tab") || "home";
+let selWho = localStorage.getItem("fb-who") || "mig";
+let selCard = localStorage.getItem("fb-card") || "";
+let editing = null;
+
+const $ = (id) => document.getElementById(id);
+$("date").value = localToday();
+
+const addMonths = (ym, d) => { const [y,m] = ym.split("-").map(Number); const dt = new Date(y, m-1+d, 1); return dt.getFullYear() + "-" + String(dt.getMonth()+1).padStart(2,"0"); };
+const monthName = (ym, opt={month:"long"}) => { const [y,m] = ym.split("-").map(Number); return new Date(y,m-1,1).toLocaleDateString("da-DK",opt); };
+const inMonth = (ym) => state.purchases.filter((p) => p.date.startsWith(ym));
+const sum = (ps) => ps.reduce((s,p) => s+p.amount, 0);
+const salesIn = (ym) => (state.sales||[]).filter((s) => s.date.startsWith(ym));
+const shortDate = (iso) => new Date(iso).toLocaleDateString("da-DK",{day:"numeric",month:"short"});
+function balanceNow(w) {
+  const b = (state.balances||{})[w]; if (!b) return null;
+  const ps = state.purchases.filter((p) => p.who===w && p.createdAt > b.at);
+  const ss = w==="mig" ? (state.sales||[]).filter((x) => x.createdAt > b.at) : [];
+  return { now: b.amount - sum(ps) + sum(ss), at: b.at, n: ps.length + ss.length };
+}
+function nextChildBenefit() {
+  const cb = state.childBenefit || { next:"2027-01-20", everyMonths:3 };
+  let [y,m,d] = cb.next.split("-").map(Number);
+  const t = new Date(); t.setHours(0,0,0,0);
+  let dt = new Date(y,m-1,d);
+  while (dt < t) { m += cb.everyMonths; dt = new Date(y,m-1,d); }
+  return { date: dt, days: Math.round((dt - t) / 864e5) };
+}
+
+$("prev").onclick = () => { month = addMonths(month,-1); render(); };
+$("next").onclick = () => { month = addMonths(month,1); render(); };
+
+function setTab(t) {
+  tab = t; localStorage.setItem("fb-tab", t);
+  for (const b of document.querySelectorAll("[data-tab]")) b.setAttribute("aria-selected", String(b.dataset.tab === t));
+  for (const s of ["home","budget","koeb"]) $("tab-"+s).hidden = s !== t;
+  window.scrollTo(0,0);
+}
+document.querySelector(".tabbar").onclick = (e) => { const b = e.target.closest("[data-tab]"); if (b) setTab(b.dataset.tab); };
+document.querySelector(".tabbar").onkeydown = (e) => {
+  if (!["ArrowLeft","ArrowRight"].includes(e.key)) return;
+  const tabs = [...document.querySelectorAll("[data-tab]")]; const i = tabs.findIndex((b) => b.dataset.tab === tab);
+  const n = tabs[(i + (e.key === "ArrowRight" ? 1 : -1) + tabs.length) % tabs.length]; setTab(n.dataset.tab); n.focus();
+};
+
+// Add dialog
+function setMode(m) {
+  mode = m;
+  for (const b of document.querySelectorAll("[data-mode]")) b.setAttribute("aria-pressed", String(b.dataset.mode === m));
+  const sell = m === "sell";
+  $("buyFields").hidden = sell; $("saleNote").hidden = !sell;
+  $("dlgTitle").textContent = sell ? "Nyt salg" : "Nyt køb";
+  $("whatLbl").textContent = sell ? "Hvad solgte du?" : "Hvad købte du?";
+  $("what").placeholder = sell ? "Fx gammel cykel" : "Fx vinterstøvler";
+  $("submitBtn").textContent = sell ? "Tilføj salg" : "Tilføj køb";
+}
+document.querySelector(".seg").onclick = (e) => { const b = e.target.closest("[data-mode]"); if (b) setMode(b.dataset.mode); };
+function openAdd(m="buy") { $("err").textContent = ""; chips(); setMode(m); $("addDlg").showModal(); $("amount").focus(); }
+$("openAdd").onclick = () => openAdd();
+$("closeAdd").onclick = () => $("addDlg").close();
+$("addDlg").addEventListener("click", (e) => { if (e.target === $("addDlg")) $("addDlg").close(); });
+
+function chips() {
+  $("whoChips").innerHTML = WHO.map(([k,l,c]) =>
+    `<button type="button" class="chip" data-who="${k}" style="--who:var(${c})" aria-pressed="${selWho===k}">${ico(k)}${l}</button>`).join("");
+  if (!state.cards.includes(selCard)) selCard = state.cards[0] || "";
+  $("cardChips").innerHTML = state.cards.map((c) =>
+    `<button type="button" class="chip" data-card="${esc(c)}" aria-pressed="${selCard===c}">${ico("card")}${esc(c)}</button>`).join("") +
+    `<button type="button" class="chip" id="addCard" aria-label="Tilføj nyt kort">${ico("plus")}Andet kort</button>`;
+}
+$("whoChips").onclick = (e) => { const b = e.target.closest("[data-who]"); if (!b) return; selWho = b.dataset.who; localStorage.setItem("fb-who", selWho); chips(); };
+$("cardChips").onclick = (e) => {
+  if (e.target.closest("#addCard")) { $("newCardRow").hidden = false; $("newCard").focus(); return; }
+  const b = e.target.closest("[data-card]"); if (!b) return;
+  selCard = b.dataset.card; localStorage.setItem("fb-card", selCard); chips();
+};
+
+async function api(path, method="GET", body) {
+  if (window.fbApi) return window.fbApi(path, method, body); // phone app: local data + GitHub sync
+  const r = await fetch(path, { method, headers:{"Content-Type":"application/json"}, body: body ? JSON.stringify(body) : undefined });
+  const j = await r.json();
+  if (!r.ok) throw new Error(j.error || "Noget gik galt");
+  return j;
+}
+
+$("form").onsubmit = async (e) => {
+  e.preventDefault(); $("err").textContent = "";
+  try {
+    if (mode === "sell") await api("/api/sales","POST",{ amount:$("amount").value, what:$("what").value, date:$("date").value });
+    else await api("/api/purchases","POST",{ amount:$("amount").value, what:$("what").value, date:$("date").value, card:selCard, who:selWho });
+    month = ($("date").value || localToday()).slice(0,7);
+    $("amount").value = ""; $("what").value = "";
+    $("addDlg").close(); render();
+  } catch (x) { $("err").textContent = x.message; }
+};
+
+$("saveCard").onclick = async () => {
+  const name = $("newCard").value.trim(); if (!name) return;
+  try { await api("/api/cards","POST",{cards:[...state.cards,name]}); selCard = name; localStorage.setItem("fb-card", selCard); $("newCard").value=""; $("newCardRow").hidden = true; }
+  catch (x) { $("err").textContent = x.message; }
+};
+
+function chart(totalBudget) {
+  const months = Array.from({length:6}, (_,i) => addMonths(month, i-5));
+  const vals = months.map((m) => sum(inMonth(m)));
+  const max = Math.max(1, totalBudget || 0, ...vals);
+  $("chart").innerHTML = months.map((m,i) => {
+    const sel = m === month;
+    const h = (v) => Math.max(3, v/max*100);
+    return `<button class="col ${sel?"sel":""}" data-month="${m}" aria-label="${monthName(m,{month:"long",year:"numeric"})}: ${kr(vals[i])}" ${sel?'aria-current="true"':""}>
+      ${sel ? `<span class="tip num">${krShort(vals[i])} kr.</span>` : ""}
+      <span class="bars"><i style="height:${h(vals[i])}%"></i>${totalBudget ? `<i class="b" style="height:${h(totalBudget)}%"></i>` : ""}</span>
+      <span class="m">${monthName(m,{month:"short"}).replace(".","")}</span></button>`;
+  }).join("");
+  // position tooltip relative to bar height
+  for (const c of $("chart").querySelectorAll(".col.sel")) {
+    const bar = c.querySelector(".bars i"); const tip = c.querySelector(".tip");
+    if (bar && tip) tip.style.bottom = (c.clientHeight - bar.offsetTop + 8) + "px";
+  }
+  $("legend").innerHTML = `<span>Brugt</span>${totalBudget ? `<span class="b">Samlet budget</span>` : ""}`;
+}
+$("chart").onclick = (e) => { const b = e.target.closest("[data-month]"); if (b) { month = b.dataset.month; render(); } };
+
+function render() {
+  chips();
+  $("month").textContent = monthName(month,{month:"long",year:"numeric"});
+  const list = inMonth(month).sort((a,b) => b.date.localeCompare(a.date) || b.createdAt.localeCompare(a.createdAt));
+  const total = sum(list);
+  const budgets = state.budgets || {};
+  const totalBudget = Object.values(budgets).reduce((s,v) => s+(v||0), 0);
+  const pct = totalBudget ? Math.round(total/totalBudget*100) : 0;
+  const over = totalBudget && total > totalBudget;
+  const mName = monthName(month);
+
+  $("headline").innerHTML = !totalBudget
+    ? `Dit forbrug<span>i ${mName}</span>`
+    : over ? `Du er over<span>dit budget</span>` : pct >= 85 ? `Tæt på grænsen<span>af dit budget</span>` : `Du er på sporet<span>af dit budget</span>`;
+  $("total").textContent = kr(total);
+  chart(totalBudget);
+
+  const prevTotal = sum(inMonth(addMonths(month,-1)));
+  const diff = total - prevTotal;
+  $("statPrev").innerHTML = `<div class="label">Sidste måned</div><span class="arrow">${ico(diff > 0 ? "up" : "down")}</span>
+    <div class="mid num">${kr(prevTotal)}</div>
+    <div class="pill ${diff>0?"up":"down"}">${prevTotal||total ? (diff>0?"+":"−") + kr(Math.abs(diff)) + " i " + mName : "Ingen data"}</div>`;
+  $("statCount").innerHTML = `<div class="label">Antal køb</div><span class="arrow">${ico("list")}</span>
+    <div class="mid num">${list.length}</div>
+    <div class="small muted">${list.length ? "Gns. " + kr(Math.round(total/list.length)) : "Ingen køb endnu"}</div>`;
+
+  $("overview").innerHTML = `
+    <div class="card budget-card">
+      <div class="tile">${ico("wallet")}</div>
+      <div><div class="small muted">Budget for ${mName}</div><div class="mid num" style="margin-top:2px">${totalBudget ? kr(totalBudget) : "Ikke sat"}</div></div>
+    </div>
+    ${totalBudget
+      ? `<div class="card status ${over?"over":""}"><div class="small">Du har brugt</div><div class="say">${pct} % af dit budget.</div>
+          <div class="small">${over ? "Over budget" : "Tilbage"}</div><div class="mid num ${over?"over-txt":""}" style="margin-top:2px">${kr(Math.abs(totalBudget-total))}</div></div>`
+      : `<div class="card status"><div class="say">Sæt et budget for at følge med.</div><button class="btn brand" data-goto="budget">Sæt budget</button></div>`}`;
+
+  const whoCard = (k, withEdit) => {
+    const {l,c} = WHOMAP[k];
+    const ps = list.filter((p) => p.who===k), s = sum(ps), b = budgets[k], o = b && s > b;
+    const sold = k==="mig" ? sum(salesIn(month)) : 0;
+    const bal = balanceNow(k);
+    const balBlock = (k==="mig" || k==="boern") ? (editing==="bal:"+k
+      ? `<div class="bal"><div class="budget-edit"><input id="balIn" inputmode="decimal" style="max-width:160px" value="${bal ? Math.round(bal.now*100)/100 : ""}" aria-label="Saldo på kontoen for ${l} i kr." placeholder="kr."><button class="btn brand" data-savebal="${k}">Gem</button><button class="btn" data-cancel>Annullér</button></div></div>`
+      : `<div class="bal"><div><div class="small muted">På kontoen</div><div class="mid num">${bal ? kr(Math.round(bal.now*100)/100) : "Ikke angivet"}</div>
+          ${bal ? `<div class="small muted">Opdateret ${shortDate(bal.at)}${bal.n ? ` · justeret for ${bal.n} ${k==="mig" ? "køb/salg" : "køb"} siden` : ""}</div>` : ""}</div>
+          <button class="btn" data-bal="${k}">${ico("bank")} Opdatér saldo</button></div>`) : "";
+    const cb = k==="boern" ? (() => { const n = nextChildBenefit(); return `<div class="info">${ico("cal")}<div><div class="label">Næste børnepenge</div><div class="small muted">${n.date.toLocaleDateString("da-DK",{day:"numeric",month:"long",year:"numeric"})} · ${n.days === 0 ? "i dag" : "om " + n.days + " dage"}</div></div></div>`; })() : "";
+    const byCard = {}; ps.forEach((p) => byCard[p.card]=(byCard[p.card]||0)+p.amount);
+    return `<div class="card" style="--who:var(${c})">
+      <div class="who-row">
+        <div class="tile who">${ico(k)}</div>
+        <div><div class="label">${l}</div>
+          <div class="small ${o?"over-txt":"muted"}">${b ? (o ? "Over med "+kr(s-b) : "Tilbage: "+kr(b-s)) + " af " + kr(b) : ps.length + " køb"}</div></div>
+        <div class="mid num" style="margin:0">${kr(s)}</div>
+      </div>
+      ${sold ? `<div class="small plus" style="margin-top:6px;font-weight:600">${ico("tag","i")} Solgt for +${kr(sold)} i ${monthName(month)}</div>` : ""}
+      ${b ? `<div class="pbar ${o?"over":""}" role="img" aria-label="${Math.round(s/b*100)} % af budget brugt"><i style="width:${Math.min(100,s/b*100)}%"></i></div>` : ""}
+      ${balBlock}${cb}
+      ${withEdit ? (Object.keys(byCard).length ? `<ul class="mini">${Object.entries(byCard).map(([n,v])=>`<li><span>${esc(n)}</span><span class="num">${kr(v)}</span></li>`).join("")}</ul>` : "") +
+        (editing==="budget:"+k
+          ? `<div class="budget-edit"><input id="budgetIn" inputmode="decimal" style="max-width:160px" value="${b??""}" aria-label="Månedsbudget for ${l} i kr." placeholder="kr."><button class="btn brand" data-savebudget="${k}">Gem</button><button class="btn" data-cancel>Annullér</button><span class="small muted">Tomt felt = intet budget</span></div>`
+          : `<div class="budget-edit"><button class="btn" data-budget="${k}">${ico("pen")} ${b ? "Ret budget" : "Sæt budget"}</button></div>`) : ""}
+    </div>`;
+  };
+  $("whoList").innerHTML = WHO.map(([k]) => whoCard(k,false)).join("");
+  $("budgetList").innerHTML = WHO.map(([k]) => whoCard(k,true)).join("");
+
+  const sales = salesIn(month);
+  $("koebSub").textContent = `${list.length} køb${sales.length ? ` · ${sales.length} salg` : ""} i ${mName}`;
+  if (!list.length && !sales.length) {
+    $("list").innerHTML = `<div class="card empty"><div class="tile">${ico("list")}</div><div class="label">Ingen køb i ${mName} endnu</div><p class="small muted">Tryk på plus for at tilføje et køb eller salg.</p><button class="btn brand" data-add>Tilføj køb</button></div>`;
+  } else {
+    const days = {};
+    [...list, ...sales.map((x) => ({...x, sale:true}))].sort((a,b) => b.date.localeCompare(a.date) || b.createdAt.localeCompare(a.createdAt)).forEach((p) => (days[p.date] ||= []).push(p));
+    $("list").innerHTML = Object.entries(days).sort((a,b) => b[0].localeCompare(a[0])).map(([d,ps]) => `
+      <div class="day">${new Date(d+"T00:00").toLocaleDateString("da-DK",{weekday:"long",day:"numeric",month:"long"})}</div>
+      <ul class="card tx">${ps.map((p) => { if (p.sale) return `<li>
+        <div class="tile sale">${ico("tag")}</div>
+        <div><div class="what">${esc(p.what || "Salg")}</div><div class="small muted">Salg · Mig selv</div></div>
+        <div class="amt num plus">+${kr(p.amount)}</div>
+        <button class="ghost" data-delsale="${p.id}" aria-label="Slet salg ${esc(p.what||"")}">${ico("trash")}</button></li>`;
+        const w = WHOMAP[p.who]; return `<li style="--who:var(${w.c})">
+        <div class="tile who">${ico(p.who)}</div>
+        <div><div class="what">${esc(p.what || "Køb")}</div><div class="small muted">${w.l} · ${esc(p.card)}</div></div>
+        <div class="amt num">${kr(p.amount)}</div>
+        <button class="ghost" data-del="${p.id}" aria-label="Slet ${esc(p.what||"køb")}">${ico("trash")}</button></li>`; }).join("")}</ul>`).join("");
+  }
+
+  const byCard = {}; list.forEach((p)=> byCard[p.card]=(byCard[p.card]||0)+p.amount);
+  $("cards").innerHTML = Object.keys(byCard).length
+    ? Object.entries(byCard).sort((a,b)=>b[1]-a[1]).map(([n,v])=>`<div class="cardrow"><div class="tile" style="width:36px;height:36px;border-radius:10px">${ico("card")}</div><div class="label">${esc(n)}<div class="pbar" style="--who:var(--brand)"><i style="width:${v/total*100}%"></i></div></div><strong class="num">${kr(v)}</strong></div>`).join("")
+    : `<div class="small muted">Ingen køb endnu</div>`;
+}
+
+document.body.addEventListener("click", async (e) => {
+  const g = e.target.closest("[data-goto]"); if (g) setTab(g.dataset.goto);
+  if (e.target.closest("[data-add]")) $("openAdd").click();
+  const d = e.target.closest("[data-del]");
+  if (d) { try { await api("/api/purchases/"+encodeURIComponent(d.dataset.del),"DELETE"); } catch (x) { alert(x.message); } }
+  const ds = e.target.closest("[data-delsale]");
+  if (ds) { try { await api("/api/sales/"+encodeURIComponent(ds.dataset.delsale),"DELETE"); } catch (x) { alert(x.message); } }
+  const b = e.target.closest("[data-budget]");
+  if (b) { editing = "budget:"+b.dataset.budget; render(); $("budgetIn").focus(); }
+  const bl = e.target.closest("[data-bal]");
+  if (bl) { editing = "bal:"+bl.dataset.bal; render(); $("balIn").focus(); $("balIn").select(); }
+  if (e.target.closest("[data-cancel]")) { editing = null; render(); }
+  const sv = e.target.closest("[data-savebal]");
+  if (sv) {
+    const v = $("balIn").value.trim(); if (v === "") return;
+    try { editing = null; await api("/api/balance","POST",{ who: sv.dataset.savebal, amount: v }); render(); }
+    catch (x) { editing = "bal:"+sv.dataset.savebal; render(); alert(x.message); }
+  }
+  const sb = e.target.closest("[data-savebudget]");
+  if (sb) {
+    const v = $("budgetIn").value.trim();
+    try { editing = null; await api("/api/budget","POST",{ who: sb.dataset.savebudget, amount: v === "" ? null : v }); render(); }
+    catch (x) { editing = "budget:"+sb.dataset.savebudget; render(); alert(x.message); }
+  }
+});
+document.body.addEventListener("keydown", (e) => {
+  if (e.target.id === "budgetIn" && e.key === "Enter") document.querySelector("[data-savebudget]")?.click();
+  if (e.target.id === "budgetIn" && e.key === "Escape") { editing = null; render(); }
+  if (e.target.id === "balIn" && e.key === "Enter") document.querySelector("[data-savebal]")?.click();
+  if (e.target.id === "balIn" && e.key === "Escape") { editing = null; render(); }
+});
+
+setTab(["home","budget","koeb"].includes(tab) ? tab : "home");
+(async () => {
+  if (window.fbInit) return window.fbInit((s) => { state = s; render(); });
+  state = await api("/api/state"); render();
+  const es = new EventSource("/events");
+  es.onmessage = (e) => { state = JSON.parse(e.data); render(); };
+})();
+</script>
+</body>
+</html>
